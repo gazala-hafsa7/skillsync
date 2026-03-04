@@ -1,35 +1,48 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import { AuthProvider } from './context/AuthContext';
+import { ProjectProvider } from './context/ProjectContext';
+import { NewsProvider } from './context/NewsContext';
+import { Navbar } from './components/layout/navbar';
+import { Footer } from './components/layout/footer';
+import Home from './pages/Home';
+import Login from './pages/login';
+import Projects from './pages/projects';
+import NewsBoard from './pages/newsboard';
+import Profile from './pages/profile';
+import './styles/globals.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+type Page = 'home' | 'login' | 'projects' | 'newsboard' | 'profile';
+
+const AppInner: React.FC = () => {
+  const [page, setPage] = useState<Page>('home');
+
+  const navigate = (p: string) => {
+    setPage(p as Page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  if (page === 'login') return <Login onNavigate={navigate} />;
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Navbar activePage={page} onNavigate={navigate} />
+      {page === 'home'      && <Home onNavigate={navigate} />}
+      {page === 'projects'  && <Projects />}
+      {page === 'newsboard' && <NewsBoard />}
+      {page === 'profile'   && <Profile />}
+      <Footer />
     </>
-  )
-}
+  );
+};
 
-export default App
+const App: React.FC = () => (
+  <AuthProvider>
+    <ProjectProvider>
+      <NewsProvider>
+        <AppInner />
+      </NewsProvider>
+    </ProjectProvider>
+  </AuthProvider>
+);
+
+export default App;
