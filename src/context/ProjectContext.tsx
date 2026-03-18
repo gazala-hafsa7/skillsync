@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
-
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from "../api/api";
 export type ProjectStatus = 'open' | 'in-progress' | 'completed';
+
 
 export interface Project {
   id: string;
@@ -19,34 +20,48 @@ export interface Project {
 interface ProjectContextType {
   projects: Project[];
   addProject: (p: Omit<Project, 'id' | 'createdAt' | 'members'>) => void;
-  joinProject: (projectId: string, userId: string, userName: string) => void;
-  deleteProject: (projectId: string, userId: string) => void;
+  joinProject: (projectId: string) => void;
+  deleteProject: (projectId: string) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | null>(null);
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>([]);
+  
+  useEffect(() => {
+    const loadProjects = async () => {
+      const data = await api.getProjects();
 
-  const addProject = (p: Omit<Project, 'id' | 'createdAt' | 'members'>) => {
-    setProjects(prev => [{
-      ...p,
-      id: Date.now().toString(),
-      createdAt: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      members: [{ id: p.teamLeadId, name: p.teamLead }],
-    }, ...prev]);
+      const formatted = data.map((p: any) => ({
+        ...p,
+        id: p._id
+      }));
+
+      setProjects(formatted);
   };
 
-  const joinProject = (projectId: string, userId: string, userName: string) => {
-    setProjects(prev => prev.map(p =>
-      p.id === projectId && !p.members.find(m => m.id === userId)
-        ? { ...p, members: [...p.members, { id: userId, name: userName }] }
-        : p
-    ));
+     loadProjects();
+}, []);
+  const addProject = async (project: any) => {
+  const newProject = await api.createProject(project);
+  setProjects(prev => [...prev, newProject]);
   };
 
-  const deleteProject = (projectId: string, userId: string) => {
-    setProjects(prev => prev.filter(p => !(p.id === projectId && p.teamLeadId === userId)));
+  const joinProject = async (projectId: string) => {
+   const data = await api.joinProject(projectId);
+
+    setProjects(prev =>
+      prev.map(p => (p.id === projectId ? data : p))
+    );
+  };
+
+  const deleteProject = async (projectId: string) => {
+    await api.deleteProject(projectId);
+
+    setProjects(prev =>
+      prev.filter(p => p.id !== projectId)
+   );
   };
 
   return (

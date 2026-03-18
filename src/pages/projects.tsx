@@ -1,3 +1,4 @@
+import { api } from "../api/api";
 import React, { useState } from 'react';
 import { useProjects } from '../context/ProjectContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,7 +10,6 @@ const ALL_TAGS = ['React', 'Vue.js', 'Node.js', 'Python', 'Django', 'Flutter', '
 
 /* ── Create Project Modal ── */
 const CreateProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { addProject } = useProjects();
   const { user } = useAuth();
   const [form, setForm] = useState({
     title: '', description: '', domain: '', maxTeamSize: 4, tags: [] as string[], status: 'open' as const,
@@ -23,24 +23,32 @@ const CreateProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s',
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) { setError('Project title is required.'); return; }
     if (!form.domain) { setError('Please select a domain.'); return; }
     if (!form.description.trim()) { setError('Please add a description.'); return; }
     if (!user) return;
 
-    addProject({
-      title: form.title,
-      description: form.description,
-      domain: form.domain,
-      teamLead: user.name,
-      teamLeadId: user.id,
-      maxTeamSize: form.maxTeamSize,
-      tags: form.tags,
-      status: 'open',
-    });
-    onClose();
+    try {
+   const data = await api.createProject({
+    title: form.title,
+    description: form.description,
+    domain: form.domain,
+    teamLead: user?.name,
+    teamLeadId: user?._id, // 🔥 important fix
+    maxTeamSize: form.maxTeamSize,
+    tags: form.tags,
+    status: 'open',
+  });
+
+  console.log("Created:", data);
+
+  onClose();
+} catch (err) {
+  console.error(err);
+  setError("Failed to create project");
+}
   };
 
   const toggleTag = (tag: string) => {
@@ -163,7 +171,7 @@ const CreateProjectModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 /* ── Project Card ── */
 const ProjectCard: React.FC<{ project: any; onJoin: () => void; isOwner: boolean; onDelete: () => void; currentUserId: string }> = ({ project, onJoin, isOwner, onDelete, currentUserId }) => {
   const [hov, setHov] = useState(false);
-  const isMember = project.members.some((m: any) => m.id === currentUserId);
+  const isMember = project.members.some(m => m.id === currentUserId);
   const isFull = project.members.length >= project.maxTeamSize;
   const openSpots = project.maxTeamSize - project.members.length;
 
@@ -223,9 +231,16 @@ const ProjectCard: React.FC<{ project: any; onJoin: () => void; isOwner: boolean
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8 }}>
-        {!isOwner && !isMember && !isFull && (
-          <Button size="sm" variant="accent" onClick={onJoin}>Join Team</Button>
-        )}
+         {!isOwner && (
+            <Button
+               size="sm"
+               variant="accent"
+               onClick={onJoin}
+               disabled={isMember || isFull}
+             >
+               {isMember ? "Joined ✓" : isFull ? "Full" : "Join Team"}
+             </Button>
+     )}
         {isMember && !isOwner && (
           <span style={{ fontSize: 13, color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>✓ Joined</span>
         )}
@@ -326,10 +341,10 @@ const Projects: React.FC = () => {
           {filtered.map(p => (
             <ProjectCard
               key={p.id} project={p}
-              currentUserId={user?.id ?? ''}
+              currentUserId={user?._id ?? ''}
               isOwner={user?.id === p.teamLeadId}
-              onJoin={() => user && joinProject(p.id, user.id, user.name)}
-              onDelete={() => user && deleteProject(p.id, user.id)}
+              onJoin={() => user && joinProject(p.id)}
+              onDelete={() => user && deleteProject(p.id)}
             />
           ))}
         </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import type { Role } from '../context/AuthContext';
 import { SkillSyncLogo } from '../components/ui/Logo';
-
+import { api } from "../api/api";
 interface LoginProps { onNavigate?: (page: string) => void; }
 
 const Login: React.FC<LoginProps> = ({ onNavigate }) => {
@@ -21,20 +21,39 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
     backdropFilter: 'blur(8px)',
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    if (!form.email || !form.password) {
-      setError('Please fill in all fields.');
-      return;
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  console.log("FORM SUBMITTED"); // 👈 ADD THIS
+
+  setError('');
+
+  if (!form.email || !form.password) {
+    setError('Please fill in all fields.');
+    return;
+  }
+
+  try {
+    console.log("Calling API...");
+
+    const data = await api.login(form.email, form.password);
+
+    console.log("Response:", data); // 👈 ADD THIS
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+
+      login(form.email, form.password, role);
+
+      onNavigate?.('home');
+    } else {
+      setError("Invalid email or password");
     }
-    if (isSignup && !form.name) {
-      setError('Please enter your name.');
-      return;
-    }
-    login(form.email, form.password, role);
-    onNavigate?.('home');
-  };
+
+  } catch (err) {
+    console.error(err);
+    setError("Something went wrong");
+  }
+};
 
   const AppleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
