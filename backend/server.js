@@ -13,6 +13,7 @@ app.use(express.json());
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/projects", require("./routes/projectRoutes"));
 app.use("/api/news", require("./routes/newsRoutes"));
+app.use("/api/results", require("./routes/resultRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use((req, res, next) => {
   console.log("REQUEST HIT:", req.method, req.url);

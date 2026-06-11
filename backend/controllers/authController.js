@@ -4,7 +4,11 @@ const generateToken = require("../utils/generateToken");
 
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
+
+    if (role === "admin") {
+      return res.status(403).json({ message: "Admin accounts must be created manually" });
+    }
 
     const userExists = await User.findOne({ email });
 
@@ -17,13 +21,21 @@ exports.registerUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      role: "student"
     });
 
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
+      role: user.role,
+      isMentor: user.isMentor,
+      dept: user.dept,
+      year: user.year,
+      skills: user.skills,
+      achievements: user.achievements,
+      personalCalendar: user.personalCalendar,
       token: generateToken(user._id)
     });
 
@@ -44,6 +56,13 @@ exports.loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
+        isMentor: user.isMentor,
+        dept: user.dept,
+        year: user.year,
+        skills: user.skills,
+        achievements: user.achievements,
+        personalCalendar: user.personalCalendar,
         token: generateToken(user._id)
       });
 

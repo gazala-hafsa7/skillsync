@@ -7,6 +7,7 @@ const newsSchema = new mongoose.Schema({
   postedBy: String,
   hot: Boolean,
   link: String,
+  eventDate: Date,
   date: {
     type: Date,
     default: Date.now
